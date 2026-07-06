@@ -1,4 +1,9 @@
-import { Bell, Search, UserCircle2 } from "lucide-react";
+"use client";
+
+import { Bell, LogOut, Search, UserCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 type TopbarProps = {
   title: string;
@@ -7,6 +12,15 @@ type TopbarProps = {
 };
 
 export function Topbar({ title, subtitle, showNotification = false }: TopbarProps) {
+  const router = useRouter();
+  const { user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+
+  async function handleLogout() {
+    await logout();
+    router.replace("/login");
+  }
+
   return (
     <header className="glass-panel sticky top-0 z-20 flex flex-col gap-4 rounded-none border-x-0 border-t-0 px-4 py-4 sm:px-6 lg:rounded-b-3xl lg:border-x lg:px-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -37,13 +51,39 @@ export function Topbar({ title, subtitle, showNotification = false }: TopbarProp
             </button>
           ) : null}
 
-          <button
-            className="flex h-11 items-center gap-2 rounded-xl bg-white/55 px-3 text-sm font-semibold text-slate-700 ring-1 ring-white/70"
-            type="button"
-          >
-            <UserCircle2 size={19} />
-            <span className="hidden sm:inline">Akun</span>
-          </button>
+          <div className="relative">
+            <button
+              className="flex h-11 items-center gap-2 rounded-xl bg-white/55 px-3 text-sm font-semibold text-slate-700 ring-1 ring-white/70"
+              type="button"
+              onClick={() => setOpen((current) => !current)}
+            >
+              <UserCircle2 size={19} />
+              <span className="hidden max-w-32 truncate sm:inline">
+                {user?.name ?? "Akun"}
+              </span>
+            </button>
+
+            {open ? (
+              <div className="glass-card absolute right-0 mt-3 w-64 rounded-2xl p-3">
+                <div className="border-b border-white/60 px-2 pb-3">
+                  <p className="truncate text-sm font-bold text-slate-900">
+                    {user?.name ?? "Pengguna"}
+                  </p>
+                  <p className="mt-1 text-xs font-medium uppercase text-slate-500">
+                    {user?.role ?? "role"}
+                  </p>
+                </div>
+                <button
+                  className="mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                  type="button"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={17} />
+                  Logout
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </header>

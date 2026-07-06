@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -50,14 +51,15 @@ const activities = [
 
 export default function AdminDashboardPage() {
   return (
-    <DashboardLayout
-      sidebarItems={sidebarItems}
-      activeLabel="Dashboard"
-      roleLabel="Admin Kelurahan"
-      title="Dashboard Admin"
-      subtitle="Kelola aspirasi dan prioritas tindak lanjut"
-      showNotification
-    >
+    <ProtectedRoute role="admin">
+      <DashboardLayout
+        sidebarItems={sidebarItems}
+        activeLabel="Dashboard"
+        roleLabel="Admin Kelurahan"
+        title="Dashboard Admin"
+        subtitle="Kelola aspirasi dan prioritas tindak lanjut"
+        showNotification
+      >
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
           <GlassCard className="p-5" key={stat.label}>
@@ -155,6 +157,7 @@ export default function AdminDashboardPage() {
           </GlassCard>
         </div>
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }

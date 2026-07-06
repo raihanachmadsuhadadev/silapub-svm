@@ -1,15 +1,54 @@
 "use client";
 
+import axios from "axios";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import { Building2, Users } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassInput } from "@/components/ui/GlassInput";
+import { useAuth, type UserRole } from "@/context/AuthContext";
+
+function dashboardPath(role: UserRole) {
+  return role === "admin" ? "/admin/dashboard" : "/warga/dashboard";
+}
+
+function getErrorMessage(error: unknown) {
+  if (axios.isAxiosError<{ message?: string; errors?: Record<string, string[]> }>(error)) {
+    const errors = error.response?.data?.errors;
+    const firstError = errors ? Object.values(errors)[0]?.[0] : undefined;
+    return firstError ?? error.response?.data?.message ?? "Login gagal.";
+  }
+
+  return "Login gagal.";
+}
 
 export default function LoginPage() {
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const router = useRouter();
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    console.log("Login dummy submitted");
+    setError("");
+    setLoading(true);
+
+    const formData = new FormData(event.currentTarget);
+
+    try {
+      const user = await login({
+        email: String(formData.get("email") ?? ""),
+        password: String(formData.get("password") ?? ""),
+      });
+
+      router.replace(dashboardPath(user.role));
+    } catch (submitError) {
+      setError(getErrorMessage(submitError));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -25,9 +64,27 @@ export default function LoginPage() {
         </p>
 
         <div className="mt-8 space-y-4">
-          <GlassInput label="Email" name="email" type="email" placeholder="nama@email.com" />
-          <GlassInput label="Password" name="password" type="password" placeholder="Password" />
+          <GlassInput
+            label="Email"
+            name="email"
+            type="email"
+            placeholder="nama@email.com"
+            required
+          />
+          <GlassInput
+            label="Password"
+            name="password"
+            type="password"
+            placeholder="Password"
+            required
+          />
         </div>
+
+        {error ? (
+          <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 ring-1 ring-red-100">
+            {error}
+          </p>
+        ) : null}
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <button
@@ -46,8 +103,8 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <GlassButton type="submit" className="mt-6 w-full">
-          Masuk
+        <GlassButton type="submit" className="mt-6 w-full" disabled={loading}>
+          {loading ? "Memproses..." : "Masuk"}
         </GlassButton>
 
         <p className="mt-5 text-center text-sm text-slate-600">

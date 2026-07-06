@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthProviderClient } from "@/components/auth/AuthProviderClient";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className="h-full antialiased">
-      <body className="min-h-full overflow-x-hidden">{children}</body>
+      <body className="min-h-full overflow-x-hidden">
+        <AuthProviderClient>{children}</AuthProviderClient>
+      </body>
     </html>
   );
 }
