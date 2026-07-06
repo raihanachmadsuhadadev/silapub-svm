@@ -16,6 +16,7 @@ import {
   formatDate,
   attachmentUrl,
   priorityLabel,
+  priorityTone,
   statusLabels,
   statusTones,
   type ApiResponse,
@@ -44,6 +45,7 @@ export default function AdminAspirationDetailPage() {
   const [note, setNote] = useState("");
   const [responseText, setResponseText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [predicting, setPredicting] = useState(false);
   const [actionError, setActionError] = useState("");
 
   const loadDetail = useCallback(async (active = true) => {
@@ -135,6 +137,25 @@ export default function AdminAspirationDetailPage() {
     }
   }
 
+  async function handlePredictPriority() {
+    if (!aspiration) {
+      return;
+    }
+
+    setPredicting(true);
+    setActionError("");
+
+    try {
+      await api.post(`/admin/aspirations/${aspiration.id}/predict-priority`);
+      alert("Rekomendasi prioritas berhasil dibuat.");
+      await loadDetail();
+    } catch (predictError) {
+      setActionError(getErrorMessage(predictError));
+    } finally {
+      setPredicting(false);
+    }
+  }
+
   return (
     <ProtectedRoute role="admin">
       <DashboardLayout
@@ -200,6 +221,30 @@ export default function AdminAspirationDetailPage() {
             </GlassCard>
 
             <div className="grid gap-6">
+              <GlassCard>
+                <p className="text-sm font-bold uppercase text-red-700">Rekomendasi Prioritas SVM</p>
+                <div className="mt-4 rounded-2xl bg-white/40 p-4 ring-1 ring-white/60">
+                  <p className="text-xs font-bold uppercase text-slate-500">Hasil Rekomendasi</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <StatusBadge tone={priorityTone(aspiration.priority_recommendation)}>
+                      {priorityLabel(aspiration.priority_recommendation)}
+                    </StatusBadge>
+                    <span className="text-sm font-semibold text-slate-600">
+                      Score: {aspiration.svm_score ?? "-"}
+                    </span>
+                  </div>
+                </div>
+                {actionError ? (
+                  <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 ring-1 ring-red-100">
+                    {actionError}
+                  </p>
+                ) : null}
+                <GlassButton className="mt-4 w-full" onClick={handlePredictPriority} disabled={predicting}>
+                  {predicting ? <Loader2 className="animate-spin" size={18} /> : <RefreshCwIcon />}
+                  {aspiration.priority_recommendation ? "Proses Ulang Rekomendasi" : "Proses Rekomendasi SVM"}
+                </GlassButton>
+              </GlassCard>
+
               <AdminActionPanel
                 status={aspiration.status}
                 actionMode={actionMode}
@@ -317,6 +362,10 @@ export default function AdminAspirationDetailPage() {
       </DashboardLayout>
     </ProtectedRoute>
   );
+}
+
+function RefreshCwIcon() {
+  return <MessageSquareText size={18} />;
 }
 
 function Info({ label, value, className = "" }: { label: string; value?: string; className?: string }) {

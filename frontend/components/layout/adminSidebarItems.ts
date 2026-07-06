@@ -13,8 +13,8 @@ import type { SidebarItem } from "@/components/layout/Sidebar";
 export const adminSidebarItems: SidebarItem[] = [
   { label: "Dashboard", href: "/admin/dashboard", icon: Home },
   { label: "Data Aspirasi", href: "/admin/aspirations", icon: FolderKanban },
-  { label: "Rekomendasi Prioritas", href: "/admin/dashboard", icon: Gauge },
-  { label: "Data Latih SVM", href: "/admin/dashboard", icon: Database },
+  { label: "Rekomendasi Prioritas", href: "/admin/recommendations", icon: Gauge },
+  { label: "Data Latih SVM", href: "/admin/svm-training-data", icon: Database },
   { label: "Kategori", href: "/admin/categories", icon: Layers3 },
   { label: "Wilayah", href: "/admin/regions", icon: MapPinned },
   { label: "User", href: "/admin/dashboard", icon: Users },

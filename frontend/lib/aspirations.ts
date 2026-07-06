@@ -105,6 +105,22 @@ export function priorityLabel(priority: string | null) {
   return priority;
 }
 
+export function priorityTone(priority: string | null): "red" | "amber" | "green" | "slate" {
+  if (priority === "tinggi" || priority === "high") {
+    return "red";
+  }
+
+  if (priority === "sedang" || priority === "medium") {
+    return "amber";
+  }
+
+  if (priority === "rendah" || priority === "low") {
+    return "green";
+  }
+
+  return "slate";
+}
+
 export function formatDate(value: string | null) {
   if (!value) {
     return "-";

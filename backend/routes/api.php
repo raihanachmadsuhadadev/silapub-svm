@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminAspirationController;
 use App\Http\Controllers\Api\AspirationCategoryController;
 use App\Http\Controllers\Api\MyAspirationController;
 use App\Http\Controllers\Api\RegionController;
+use App\Http\Controllers\Api\SvmTrainingDataController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
@@ -32,5 +33,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::put('/aspirations/{aspiration}/reject', [AdminAspirationController::class, 'reject']);
         Route::put('/aspirations/{aspiration}/status', [AdminAspirationController::class, 'updateStatus']);
         Route::post('/aspirations/{aspiration}/responses', [AdminAspirationController::class, 'storeResponse']);
+        Route::post('/aspirations/{aspiration}/predict-priority', [AdminAspirationController::class, 'predictPriority']);
+        Route::apiResource('svm-training-data', SvmTrainingDataController::class)
+            ->parameters(['svm-training-data' => 'svmTrainingDatum']);
     });
 });

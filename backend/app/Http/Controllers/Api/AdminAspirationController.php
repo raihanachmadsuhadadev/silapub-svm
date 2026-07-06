@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Aspiration;
+use App\Models\SvmTrainingData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 
 class AdminAspirationController extends Controller
@@ -147,6 +149,70 @@ class AdminAspirationController extends Controller
         ]);
 
         return $this->success('Tanggapan admin berhasil dikirim', $response->load('admin'), 201);
+    }
+
+    public function predictPriority(Request $request, Aspiration $aspiration): JsonResponse
+    {
+        if ($response = $this->adminOnly($request)) {
+            return $response;
+        }
+
+        $trainingData = SvmTrainingData::query()
+            ->where('is_active', true)
+            ->get(['text', 'label']);
+
+        if ($trainingData->count() < 6) {
+            return $this->error('Data latih aktif minimal 6 data sebelum rekomendasi dapat dibuat.', 422);
+        }
+
+        $labelCounts = $trainingData->countBy('label');
+        foreach (['tinggi', 'sedang', 'rendah'] as $label) {
+            if (($labelCounts[$label] ?? 0) < 2) {
+                return $this->error('Setiap label prioritas minimal memiliki 2 data latih aktif.', 422);
+            }
+        }
+
+        $payload = [
+            'text' => trim($aspiration->title.' '.$aspiration->content),
+            'training_data' => $trainingData->map(fn (SvmTrainingData $item) => [
+                'text' => $item->text,
+                'label' => $item->label,
+            ])->values(),
+        ];
+
+        try {
+            $mlResponse = Http::timeout(15)->post('http://127.0.0.1:5001/predict', $payload);
+        } catch (\Throwable $exception) {
+            return $this->error('ML Service tidak aktif atau tidak dapat dihubungi.', 503);
+        }
+
+        if (! $mlResponse->ok() || ! $mlResponse->json('success')) {
+            return $this->error($mlResponse->json('message') ?? 'Rekomendasi prioritas gagal dibuat.', 422);
+        }
+
+        $priority = $mlResponse->json('priority');
+        $score = $mlResponse->json('score');
+
+        if (! in_array($priority, ['tinggi', 'sedang', 'rendah'], true)) {
+            return $this->error('ML Service mengembalikan prioritas yang tidak valid.', 422);
+        }
+
+        $aspiration->update([
+            'priority_recommendation' => $priority,
+            'svm_score' => is_numeric($score) ? $score : null,
+        ]);
+
+        $aspiration->statusHistories()->create([
+            'status' => $aspiration->status,
+            'note' => 'Rekomendasi prioritas SVM berhasil dibuat: '.$priority,
+            'created_by' => $request->user()->id,
+        ]);
+
+        return $this->success('Rekomendasi prioritas berhasil dibuat', [
+            'priority' => $priority,
+            'score' => is_numeric($score) ? (float) $score : null,
+            'aspiration' => $aspiration->fresh()->load(['user', 'category', 'region', 'attachments', 'statusHistories.creator', 'responses.admin']),
+        ]);
     }
 
     private function applyStatusUpdate(

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Aspiration;
 use App\Models\AspirationCategory;
 use App\Models\Region;
+use App\Models\SvmTrainingData;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -174,6 +175,51 @@ class DatabaseSeeder extends Seeder
                     ],
                 );
             }
+        }
+
+        $trainingSeeds = [
+            ['Jalan utama berlubang besar dan membahayakan pengendara', 'tinggi'],
+            ['Saluran air tersumbat menyebabkan banjir saat hujan deras', 'tinggi'],
+            ['Jembatan lingkungan rusak dan berisiko ambruk', 'tinggi'],
+            ['Kabel listrik menjuntai di jalan warga', 'tinggi'],
+            ['Pohon besar hampir tumbang di dekat rumah warga', 'tinggi'],
+            ['Tembok penahan tanah retak dan membahayakan', 'tinggi'],
+            ['Lampu jalan mati di area rawan keamanan', 'tinggi'],
+            ['Genangan air tinggi menghambat akses warga', 'tinggi'],
+            ['Sampah menumpuk menyebabkan bau dan penyakit', 'tinggi'],
+            ['Pos keamanan rusak dan tidak dapat digunakan', 'tinggi'],
+            ['Lampu jalan mati di gang kecil', 'sedang'],
+            ['Tempat sampah umum perlu ditambah', 'sedang'],
+            ['Jalan lingkungan mulai retak', 'sedang'],
+            ['Drainase perlu dibersihkan', 'sedang'],
+            ['Pelayanan administrasi perlu antrean lebih tertib', 'sedang'],
+            ['Warga meminta jadwal kerja bakti rutin', 'sedang'],
+            ['Area taman perlu dirapikan', 'sedang'],
+            ['Rambu lingkungan perlu diperbarui', 'sedang'],
+            ['Fasilitas pos ronda perlu dicat ulang', 'sedang'],
+            ['Saluran air mulai dangkal', 'sedang'],
+            ['Usulan penambahan tanaman hias', 'rendah'],
+            ['Permintaan pengecatan pagar lingkungan', 'rendah'],
+            ['Usulan lomba kebersihan antar RT', 'rendah'],
+            ['Penambahan papan informasi kegiatan warga', 'rendah'],
+            ['Usulan dekorasi taman kecil', 'rendah'],
+            ['Permintaan tempat duduk di balai warga', 'rendah'],
+            ['Usulan mural edukasi lingkungan', 'rendah'],
+            ['Penataan ulang pot bunga', 'rendah'],
+            ['Usulan jadwal olahraga bersama', 'rendah'],
+            ['Permintaan lampu hias untuk kegiatan warga', 'rendah'],
+        ];
+
+        foreach ($trainingSeeds as [$text, $label]) {
+            SvmTrainingData::updateOrCreate(
+                ['text' => $text],
+                [
+                    'title' => null,
+                    'label' => $label,
+                    'is_active' => true,
+                    'created_by' => User::where('email', 'admin@silapub.test')->value('id'),
+                ],
+            );
         }
     }
 }

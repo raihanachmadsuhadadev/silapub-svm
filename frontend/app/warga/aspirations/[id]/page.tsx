@@ -15,6 +15,7 @@ import {
   formatDate,
   attachmentUrl,
   priorityLabel,
+  priorityTone,
   statusLabels,
   statusTones,
   type ApiResponse,
@@ -107,6 +108,14 @@ export default function WargaAspirationDetailPage() {
                   value={priorityLabel(aspiration.priority_recommendation)}
                   className="md:col-span-2"
                 />
+                <div className="rounded-2xl bg-white/40 p-4 ring-1 ring-white/60 md:col-span-2">
+                  <p className="text-xs font-bold uppercase text-slate-500">Badge Prioritas</p>
+                  <div className="mt-2">
+                    <StatusBadge tone={priorityTone(aspiration.priority_recommendation)}>
+                      {priorityLabel(aspiration.priority_recommendation)}
+                    </StatusBadge>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-6 rounded-2xl bg-white/40 p-5 ring-1 ring-white/60">
