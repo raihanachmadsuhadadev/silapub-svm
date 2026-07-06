@@ -18,5 +18,5 @@ export const adminSidebarItems: SidebarItem[] = [
   { label: "Kategori", href: "/admin/categories", icon: Layers3 },
   { label: "Wilayah", href: "/admin/regions", icon: MapPinned },
   { label: "User", href: "/admin/dashboard", icon: Users },
-  { label: "Laporan", href: "/admin/dashboard", icon: FileBarChart },
+  { label: "Laporan", href: "/admin/reports", icon: FileBarChart },
 ];

@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminAspirationController;
+use App\Http\Controllers\Api\AspirationReportController;
 use App\Http\Controllers\Api\AspirationCategoryController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\MyAspirationController;
 use App\Http\Controllers\Api\RegionController;
 use App\Http\Controllers\Api\SvmTrainingDataController;
@@ -25,8 +27,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('my-aspirations', MyAspirationController::class)
         ->only(['index', 'store', 'show'])
         ->parameters(['my-aspirations' => 'myAspiration']);
+    Route::get('/warga/dashboard', [DashboardController::class, 'warga']);
 
     Route::prefix('admin')->group(function (): void {
+        Route::get('/dashboard', [DashboardController::class, 'admin']);
+        Route::get('/reports/aspirations', [AspirationReportController::class, 'index']);
         Route::get('/aspirations', [AdminAspirationController::class, 'index']);
         Route::get('/aspirations/{aspiration}', [AdminAspirationController::class, 'show']);
         Route::put('/aspirations/{aspiration}/verify', [AdminAspirationController::class, 'verify']);

@@ -55,6 +55,7 @@ export type Aspiration = {
   svm_score: string | null;
   submitted_at: string | null;
   created_at: string;
+  updated_at?: string;
   attachments?: AspirationAttachment[];
   attachments_count?: number;
   status_histories?: AspirationStatusHistory[];
