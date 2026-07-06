@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminAspirationController;
 use App\Http\Controllers\Api\AspirationCategoryController;
+use App\Http\Controllers\Api\MyAspirationController;
 use App\Http\Controllers\Api\RegionController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,4 +21,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('aspiration-categories', AspirationCategoryController::class)
         ->parameters(['aspiration-categories' => 'aspirationCategory']);
     Route::apiResource('regions', RegionController::class);
+    Route::apiResource('my-aspirations', MyAspirationController::class)
+        ->only(['index', 'store', 'show'])
+        ->parameters(['my-aspirations' => 'myAspiration']);
+
+    Route::prefix('admin')->group(function (): void {
+        Route::get('/aspirations', [AdminAspirationController::class, 'index']);
+        Route::get('/aspirations/{aspiration}', [AdminAspirationController::class, 'show']);
+    });
 });

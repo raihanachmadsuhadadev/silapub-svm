@@ -1,22 +1,10 @@
-import {
-  ClipboardList,
-  Home,
-  MessageSquarePlus,
-  UserCircle2,
-  WalletCards,
-} from "lucide-react";
+import { MessageSquarePlus, WalletCards } from "lucide-react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { wargaSidebarItems } from "@/components/layout/wargaSidebarItems";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-
-const sidebarItems = [
-  { label: "Dashboard", href: "/warga/dashboard", icon: Home },
-  { label: "Ajukan Aspirasi", href: "/warga/dashboard", icon: MessageSquarePlus },
-  { label: "Status Aspirasi", href: "/warga/dashboard", icon: ClipboardList },
-  { label: "Profil", href: "/warga/dashboard", icon: UserCircle2 },
-];
 
 const stats = [
   { label: "Total Aspirasi", value: "12", tone: "text-blue-700" },
@@ -42,7 +30,7 @@ export default function WargaDashboardPage() {
   return (
     <ProtectedRoute role="warga">
       <DashboardLayout
-        sidebarItems={sidebarItems}
+        sidebarItems={wargaSidebarItems}
         activeLabel="Dashboard"
         roleLabel="Warga"
         title="Dashboard Warga"
@@ -68,7 +56,7 @@ export default function WargaDashboardPage() {
                   Laporan warga terakhir
                 </h2>
               </div>
-              <GlassButton>
+              <GlassButton href="/warga/aspirations/create">
                 <MessageSquarePlus size={18} />
                 Ajukan Aspirasi
               </GlassButton>

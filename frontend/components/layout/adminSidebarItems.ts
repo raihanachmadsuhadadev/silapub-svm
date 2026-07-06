@@ -13,7 +13,7 @@ import type { SidebarItem } from "@/components/layout/Sidebar";
 
 export const adminSidebarItems: SidebarItem[] = [
   { label: "Dashboard", href: "/admin/dashboard", icon: Home },
-  { label: "Data Aspirasi", href: "/admin/dashboard", icon: FolderKanban },
+  { label: "Data Aspirasi", href: "/admin/aspirations", icon: FolderKanban },
   { label: "Verifikasi Aspirasi", href: "/admin/dashboard", icon: ClipboardCheck },
   { label: "Rekomendasi Prioritas", href: "/admin/dashboard", icon: Gauge },
   { label: "Data Latih SVM", href: "/admin/dashboard", icon: Database },
