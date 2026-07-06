@@ -2,33 +2,13 @@ import {
   Activity,
   BarChart3,
   CheckCircle2,
-  ClipboardCheck,
-  Database,
-  FileBarChart,
-  FolderKanban,
-  Gauge,
-  Home,
-  Layers3,
-  MapPinned,
   ShieldCheck,
-  Users,
 } from "lucide-react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { adminSidebarItems } from "@/components/layout/adminSidebarItems";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-
-const sidebarItems = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: Home },
-  { label: "Data Aspirasi", href: "/admin/dashboard", icon: FolderKanban },
-  { label: "Verifikasi Aspirasi", href: "/admin/dashboard", icon: ClipboardCheck },
-  { label: "Rekomendasi Prioritas", href: "/admin/dashboard", icon: Gauge },
-  { label: "Data Latih SVM", href: "/admin/dashboard", icon: Database },
-  { label: "Kategori", href: "/admin/dashboard", icon: Layers3 },
-  { label: "Wilayah", href: "/admin/dashboard", icon: MapPinned },
-  { label: "User", href: "/admin/dashboard", icon: Users },
-  { label: "Laporan", href: "/admin/dashboard", icon: FileBarChart },
-];
 
 const stats = [
   { label: "Aspirasi Masuk", value: "48", tone: "text-blue-700" },
@@ -53,7 +33,7 @@ export default function AdminDashboardPage() {
   return (
     <ProtectedRoute role="admin">
       <DashboardLayout
-        sidebarItems={sidebarItems}
+        sidebarItems={adminSidebarItems}
         activeLabel="Dashboard"
         roleLabel="Admin Kelurahan"
         title="Dashboard Admin"
