@@ -114,6 +114,7 @@ class DatabaseSeeder extends Seeder
         foreach ($aspirationSeeds as $index => $seed) {
             $category = AspirationCategory::where('code', $seed['category'])->first();
             $region = Region::where('code', $seed['region'])->first();
+            $admin = User::where('email', 'admin@silapub.test')->first();
             $submittedAt = now()->subDays(10 - $index);
 
             $aspiration = Aspiration::updateOrCreate(
@@ -153,6 +154,23 @@ class DatabaseSeeder extends Seeder
                         'created_by' => null,
                         'created_at' => $submittedAt->copy()->addDay(),
                         'updated_at' => $submittedAt->copy()->addDay(),
+                    ],
+                );
+            }
+
+            if (in_array($seed['status'], ['in_progress', 'completed', 'rejected'], true) && $admin) {
+                $aspiration->responses()->updateOrCreate(
+                    ['status' => $seed['status']],
+                    [
+                        'admin_id' => $admin->id,
+                        'response_text' => match ($seed['status']) {
+                            'in_progress' => 'Aspirasi sedang kami koordinasikan dengan petugas terkait.',
+                            'completed' => 'Aspirasi telah selesai ditindaklanjuti. Terima kasih atas laporan warga.',
+                            'rejected' => 'Aspirasi belum dapat diproses karena informasi pendukung belum mencukupi.',
+                            default => 'Tanggapan admin kelurahan.',
+                        },
+                        'created_at' => $submittedAt->copy()->addDays(2),
+                        'updated_at' => $submittedAt->copy()->addDays(2),
                     ],
                 );
             }

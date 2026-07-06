@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['aspiration_id', 'status', 'note', 'created_by', 'created_at', 'updated_at'])]
-class AspirationStatusHistory extends Model
+#[Fillable(['aspiration_id', 'admin_id', 'response_text', 'status', 'created_at', 'updated_at'])]
+class AspirationResponse extends Model
 {
     use HasFactory;
 
@@ -17,8 +17,8 @@ class AspirationStatusHistory extends Model
         return $this->belongsTo(Aspiration::class);
     }
 
-    public function creator(): BelongsTo
+    public function admin(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'admin_id');
     }
 }

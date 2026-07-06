@@ -63,4 +63,9 @@ class Aspiration extends Model
     {
         return $this->hasMany(AspirationStatusHistory::class)->oldest();
     }
+
+    public function responses(): HasMany
+    {
+        return $this->hasMany(AspirationResponse::class)->latest();
+    }
 }

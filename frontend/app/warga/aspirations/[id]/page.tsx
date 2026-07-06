@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { api } from "@/lib/api";
 import {
   formatDate,
+  attachmentUrl,
   priorityLabel,
   statusLabels,
   statusTones,
@@ -124,8 +125,9 @@ export default function WargaAspirationDetailPage() {
                     aspiration.attachments.map((attachment) => (
                       <Link
                         className="flex items-center gap-3 rounded-2xl bg-white/40 p-3 text-sm font-semibold text-slate-700 ring-1 ring-white/60"
-                        href={attachment.url ?? "#"}
+                        href={attachmentUrl(attachment)}
                         target="_blank"
+                        rel="noopener noreferrer"
                         key={attachment.id}
                       >
                         <FileText size={18} className="text-blue-700" />
@@ -157,6 +159,39 @@ export default function WargaAspirationDetailPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </GlassCard>
+
+              <GlassCard>
+                <p className="text-sm font-bold uppercase text-blue-700">Tanggapan Admin</p>
+                <div className="mt-4 space-y-3">
+                  {aspiration.responses && aspiration.responses.length > 0 ? (
+                    aspiration.responses.map((response) => (
+                      <div
+                        className="rounded-2xl bg-white/40 p-4 ring-1 ring-white/60"
+                        key={response.id}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusBadge tone={statusTones[response.status]}>
+                            {statusLabels[response.status]}
+                          </StatusBadge>
+                          <span className="text-xs font-medium text-slate-500">
+                            {formatDate(response.created_at)}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-slate-700">
+                          {response.response_text}
+                        </p>
+                        <p className="mt-2 text-xs font-semibold text-slate-500">
+                          {response.admin?.name ?? "Admin Kelurahan"}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="rounded-2xl bg-white/40 p-4 text-sm text-slate-500 ring-1 ring-white/60">
+                      Belum ada tanggapan dari admin kelurahan.
+                    </p>
+                  )}
                 </div>
               </GlassCard>
             </div>

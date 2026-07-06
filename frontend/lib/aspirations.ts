@@ -21,6 +21,7 @@ export type AspirationAttachment = {
   file_path: string;
   file_type: string | null;
   file_size: number | null;
+  file_url?: string;
   url?: string;
 };
 
@@ -30,6 +31,14 @@ export type AspirationStatusHistory = {
   note: string | null;
   created_at: string;
   creator?: AuthUser | null;
+};
+
+export type AspirationResponse = {
+  id: number;
+  response_text: string;
+  status: AspirationStatus;
+  created_at: string;
+  admin?: AuthUser | null;
 };
 
 export type Aspiration = {
@@ -49,6 +58,7 @@ export type Aspiration = {
   attachments?: AspirationAttachment[];
   attachments_count?: number;
   status_histories?: AspirationStatusHistory[];
+  responses?: AspirationResponse[];
 };
 
 export type ApiResponse<T> = {
@@ -105,4 +115,27 @@ export function formatDate(value: string | null) {
     month: "short",
     year: "numeric",
   }).format(new Date(value));
+}
+
+export function attachmentUrl(attachment: AspirationAttachment) {
+  if (attachment.file_url) {
+    return attachment.file_url;
+  }
+
+  if (attachment.url?.startsWith("http")) {
+    return attachment.url;
+  }
+
+  const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api")
+    .replace(/\/api\/?$/, "");
+
+  if (attachment.file_path) {
+    return `${apiBaseUrl}/storage/${attachment.file_path}`;
+  }
+
+  if (attachment.url) {
+    return `${apiBaseUrl}${attachment.url}`;
+  }
+
+  return "#";
 }

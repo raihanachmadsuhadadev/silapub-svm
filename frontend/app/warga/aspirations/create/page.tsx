@@ -18,11 +18,45 @@ type RegionOption = MasterOption & {
   rw: string;
 };
 
+type ApiErrorResponse = {
+  message?: string;
+  errors?: Record<string, string[] | string>;
+  data?: {
+    errors?: Record<string, string[] | string>;
+  };
+};
+
+function firstValidationMessage(errors?: Record<string, string[] | string>) {
+  if (!errors) {
+    return undefined;
+  }
+
+  const firstValue = Object.values(errors)[0];
+
+  if (Array.isArray(firstValue)) {
+    return firstValue[0];
+  }
+
+  return firstValue;
+}
+
 function getErrorMessage(error: unknown) {
-  if (axios.isAxiosError<{ message?: string; errors?: Record<string, string[]> }>(error)) {
-    const errors = error.response?.data?.errors;
-    const firstError = errors ? Object.values(errors)[0]?.[0] : undefined;
-    return firstError ?? error.response?.data?.message ?? "Aspirasi gagal dikirim.";
+  if (axios.isAxiosError<ApiErrorResponse>(error)) {
+    const data = error.response?.data;
+    const validationMessage =
+      firstValidationMessage(data?.errors) ?? firstValidationMessage(data?.data?.errors);
+
+    if (validationMessage) {
+      return validationMessage;
+    }
+
+    if (data?.message) {
+      return data.message;
+    }
+
+    if (typeof error.response?.data === "string") {
+      return error.response.data;
+    }
   }
 
   return "Aspirasi gagal dikirim.";
@@ -80,11 +114,42 @@ export default function CreateAspirationPage() {
     setSubmitting(true);
     setError("");
 
-    const form = new FormData(event.currentTarget);
-    files.forEach((file) => form.append("attachments[]", file));
+    const formElement = event.currentTarget;
+    const source = new FormData(formElement);
+    const form = new FormData();
+
+    form.append("aspiration_category_id", String(source.get("aspiration_category_id") ?? ""));
+    form.append("region_id", String(source.get("region_id") ?? ""));
+    form.append("title", String(source.get("title") ?? ""));
+    form.append("content", String(source.get("content") ?? ""));
+
+    const locationDetail = String(source.get("location_detail") ?? "");
+
+    if (locationDetail) {
+      form.append("location_detail", locationDetail);
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        files.map((file) => ({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          isFile: file instanceof File,
+        })),
+      );
+    }
+
+    files
+      .filter((file) => file instanceof File)
+      .forEach((file) => form.append("attachments[]", file));
 
     try {
-      await api.post("/my-aspirations", form);
+      await api.post("/my-aspirations", form, {
+        headers: {
+          Accept: "application/json",
+        },
+      });
       alert("Aspirasi berhasil diajukan.");
       router.replace("/warga/aspirations");
     } catch (submitError) {
@@ -186,6 +251,7 @@ export default function CreateAspirationPage() {
                 </span>
                 <input
                   className="sr-only"
+                  name="attachments_picker"
                   type="file"
                   multiple
                   accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"

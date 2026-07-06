@@ -13,7 +13,7 @@ class AspirationAttachment extends Model
 {
     use HasFactory;
 
-    protected $appends = ['url'];
+    protected $appends = ['file_url', 'url'];
 
     public function aspiration(): BelongsTo
     {
@@ -22,6 +22,11 @@ class AspirationAttachment extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::url($this->file_path);
+        return $this->file_url;
+    }
+
+    public function getFileUrlAttribute(): string
+    {
+        return rtrim((string) config('app.url'), '/').Storage::url($this->file_path);
     }
 }

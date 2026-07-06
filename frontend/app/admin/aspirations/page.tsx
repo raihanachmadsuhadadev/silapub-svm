@@ -28,12 +28,37 @@ const statusOptions: Array<"all" | AspirationStatus> = [
   "rejected",
 ];
 
+function isStatusFilter(value: string | null): value is "all" | AspirationStatus {
+  return value === "all" || statusOptions.includes(value as "all" | AspirationStatus);
+}
+
 export default function AdminAspirationsPage() {
   const [aspirations, setAspirations] = useState<Aspiration[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | AspirationStatus>("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function syncStatusFromQuery() {
+      await Promise.resolve();
+
+      const queryStatus = new URLSearchParams(window.location.search).get("status");
+
+      if (active && isStatusFilter(queryStatus)) {
+        setStatus(queryStatus);
+      }
+    }
+
+    syncStatusFromQuery();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -69,6 +94,7 @@ export default function AdminAspirationsPage() {
 
     return aspirations.filter((aspiration) => {
       const matchesStatus = status === "all" || aspiration.status === status;
+      const matchesCategory = categoryFilter === "all" || String(aspiration.category?.id) === categoryFilter;
       const matchesKeyword = [
         aspiration.code,
         aspiration.title,
@@ -79,9 +105,28 @@ export default function AdminAspirationsPage() {
         .toLowerCase()
         .includes(keyword);
 
-      return matchesStatus && matchesKeyword;
+      return matchesStatus && matchesCategory && matchesKeyword;
     });
-  }, [aspirations, search, status]);
+  }, [aspirations, categoryFilter, search, status]);
+
+  const categories = useMemo(() => {
+    const map = new Map<number, string>();
+    aspirations.forEach((aspiration) => {
+      if (aspiration.category?.id) {
+        map.set(aspiration.category.id, aspiration.category.name);
+      }
+    });
+    return Array.from(map, ([id, name]) => ({ id, name }));
+  }, [aspirations]);
+
+  const summary = {
+    total: aspirations.length,
+    submitted: aspirations.filter((item) => item.status === "submitted").length,
+    verified: aspirations.filter((item) => item.status === "verified").length,
+    inProgress: aspirations.filter((item) => item.status === "in_progress").length,
+    completed: aspirations.filter((item) => item.status === "completed").length,
+    rejected: aspirations.filter((item) => item.status === "rejected").length,
+  };
 
   return (
     <ProtectedRoute role="admin">
@@ -93,6 +138,22 @@ export default function AdminAspirationsPage() {
         subtitle="Daftar aspirasi masuk dari warga"
         showNotification
       >
+        <div className="mb-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-6">
+          {[
+            ["Total Aspirasi", summary.total, "text-blue-700"],
+            ["Diajukan", summary.submitted, "text-amber-600"],
+            ["Diverifikasi", summary.verified, "text-blue-700"],
+            ["Diproses", summary.inProgress, "text-violet-700"],
+            ["Selesai", summary.completed, "text-green-700"],
+            ["Ditolak", summary.rejected, "text-red-600"],
+          ].map(([label, value, tone]) => (
+            <GlassCard className="p-5" key={label}>
+              <p className="text-sm font-medium text-slate-500">{label}</p>
+              <p className={`mt-3 text-3xl font-bold ${tone}`}>{value}</p>
+            </GlassCard>
+          ))}
+        </div>
+
         <GlassCard>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -121,6 +182,18 @@ export default function AdminAspirationsPage() {
                 {statusOptions.map((option) => (
                   <option value={option} key={option}>
                     {option === "all" ? "Semua status" : statusLabels[option]}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="h-11 rounded-xl border border-white/60 bg-white/55 px-4 text-sm text-slate-700 outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+              >
+                <option value="all">Semua kategori</option>
+                {categories.map((category) => (
+                  <option value={category.id} key={category.id}>
+                    {category.name}
                   </option>
                 ))}
               </select>
