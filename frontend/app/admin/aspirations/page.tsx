@@ -7,11 +7,14 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminSidebarItems } from "@/components/layout/adminSidebarItems";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Pagination } from "@/components/ui/Pagination";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { api } from "@/lib/api";
 import {
   formatDate,
   priorityLabel,
+  priorityTone,
   statusLabels,
   statusTones,
   type ApiResponse,
@@ -37,6 +40,8 @@ export default function AdminAspirationsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | AspirationStatus>("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -119,6 +124,11 @@ export default function AdminAspirationsPage() {
     return Array.from(map, ([id, name]) => ({ id, name }));
   }, [aspirations]);
 
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(start, start + itemsPerPage);
+  }, [currentPage, filtered, itemsPerPage]);
+
   const summary = {
     total: aspirations.length,
     submitted: aspirations.filter((item) => item.status === "submitted").length,
@@ -171,13 +181,19 @@ export default function AdminAspirationsPage() {
                   className="h-11 w-full rounded-xl border border-white/60 bg-white/55 pl-10 pr-4 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
                   placeholder="Cari aspirasi..."
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setCurrentPage(1);
+                  }}
                 />
               </label>
               <select
                 className="h-11 rounded-xl border border-white/60 bg-white/55 px-4 text-sm text-slate-700 outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
                 value={status}
-                onChange={(event) => setStatus(event.target.value as "all" | AspirationStatus)}
+                onChange={(event) => {
+                  setStatus(event.target.value as "all" | AspirationStatus);
+                  setCurrentPage(1);
+                }}
               >
                 {statusOptions.map((option) => (
                   <option value={option} key={option}>
@@ -188,7 +204,10 @@ export default function AdminAspirationsPage() {
               <select
                 className="h-11 rounded-xl border border-white/60 bg-white/55 px-4 text-sm text-slate-700 outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
                 value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
+                onChange={(event) => {
+                  setCategoryFilter(event.target.value);
+                  setCurrentPage(1);
+                }}
               >
                 <option value="all">Semua kategori</option>
                 {categories.map((category) => (
@@ -232,11 +251,14 @@ export default function AdminAspirationsPage() {
                 ) : filtered.length === 0 ? (
                   <tr>
                     <td className="px-4 py-10 text-center text-slate-500" colSpan={9}>
-                      Belum ada aspirasi yang cocok.
+                      <EmptyState
+                        title="Belum ada aspirasi"
+                        description="Tidak ada aspirasi yang sesuai dengan pencarian atau filter saat ini."
+                      />
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((aspiration) => (
+                  paginated.map((aspiration) => (
                     <tr className="border-t border-white/60" key={aspiration.id}>
                       <td className="px-4 py-4 font-bold text-slate-800">{aspiration.code}</td>
                       <td className="px-4 py-4 text-slate-500">{aspiration.user?.name}</td>
@@ -250,8 +272,10 @@ export default function AdminAspirationsPage() {
                           {statusLabels[aspiration.status]}
                         </StatusBadge>
                       </td>
-                      <td className="px-4 py-4 text-slate-500">
-                        {priorityLabel(aspiration.priority_recommendation)}
+                      <td className="px-4 py-4">
+                        <StatusBadge tone={priorityTone(aspiration.priority_recommendation)}>
+                          {priorityLabel(aspiration.priority_recommendation)}
+                        </StatusBadge>
                       </td>
                       <td className="px-4 py-4 text-slate-500">{formatDate(aspiration.submitted_at)}</td>
                       <td className="px-4 py-4">
@@ -269,6 +293,16 @@ export default function AdminAspirationsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filtered.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(value) => {
+              setItemsPerPage(value);
+              setCurrentPage(1);
+            }}
+          />
         </GlassCard>
       </DashboardLayout>
     </ProtectedRoute>

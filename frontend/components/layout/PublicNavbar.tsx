@@ -27,6 +27,9 @@ export function PublicNavbar() {
         <a href="#alur" className="hover:text-blue-700">
           Alur
         </a>
+        <a href="#aspirasi" className="hover:text-blue-700">
+          Aspirasi
+        </a>
       </nav>
 
       <div className="hidden items-center gap-3 sm:flex">

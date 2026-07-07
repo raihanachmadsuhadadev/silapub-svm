@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AspirationReportController;
 use App\Http\Controllers\Api\AspirationCategoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\MyAspirationController;
+use App\Http\Controllers\Api\PublicAspirationController;
 use App\Http\Controllers\Api\RegionController;
 use App\Http\Controllers\Api\SvmTrainingDataController;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,8 @@ Route::prefix('auth')->group(function (): void {
         Route::post('/logout', [AuthController::class, 'logout']);
     });
 });
+
+Route::get('/public/latest-aspirations', [PublicAspirationController::class, 'latest']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('aspiration-categories', AspirationCategoryController::class)

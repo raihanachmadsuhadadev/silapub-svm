@@ -6,10 +6,14 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminSidebarItems } from "@/components/layout/adminSidebarItems";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassInput } from "@/components/ui/GlassInput";
+import { Pagination } from "@/components/ui/Pagination";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useToast } from "@/components/ui/ToastProvider";
 import { api } from "@/lib/api";
 
 type Region = {
@@ -63,10 +67,14 @@ export default function AdminRegionsPage() {
   const [regions, setRegions] = useState<Region[]>([]);
   const [form, setForm] = useState<RegionForm>(initialForm);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Region | null>(null);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { showToast } = useToast();
 
   const filteredRegions = useMemo(() => {
     const keyword = search.toLowerCase();
@@ -85,6 +93,11 @@ export default function AdminRegionsPage() {
         .includes(keyword),
     );
   }, [regions, search]);
+
+  const paginatedRegions = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredRegions.slice(start, start + itemsPerPage);
+  }, [currentPage, filteredRegions, itemsPerPage]);
 
   async function fetchRegions() {
     setLoading(true);
@@ -144,34 +157,38 @@ export default function AdminRegionsPage() {
     try {
       if (editingId) {
         await api.put(`/regions/${editingId}`, form);
-        alert("Wilayah berhasil diperbarui.");
+        showToast({ type: "success", title: "Wilayah berhasil diperbarui." });
       } else {
         await api.post("/regions", form);
-        alert("Wilayah berhasil ditambahkan.");
+        showToast({ type: "success", title: "Wilayah berhasil ditambahkan." });
       }
 
       resetForm();
       await fetchRegions();
     } catch (submitError) {
-      setError(getErrorMessage(submitError));
+      const message = getErrorMessage(submitError);
+      setError(message);
+      showToast({ type: "error", title: "Wilayah gagal disimpan.", description: message });
     } finally {
       setSaving(false);
     }
   }
 
   async function deleteRegion(region: Region) {
-    if (!window.confirm(`Hapus wilayah ${region.code}?`)) {
-      return;
-    }
-
     setError("");
+    setSaving(true);
 
     try {
       await api.delete(`/regions/${region.id}`);
-      alert("Wilayah berhasil dihapus.");
+      showToast({ type: "success", title: "Wilayah berhasil dihapus." });
+      setDeleteTarget(null);
       await fetchRegions();
     } catch (deleteError) {
-      setError(getErrorMessage(deleteError));
+      const message = getErrorMessage(deleteError);
+      setError(message);
+      showToast({ type: "error", title: "Wilayah gagal dihapus.", description: message });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -300,7 +317,10 @@ export default function AdminRegionsPage() {
                   className="h-11 w-full rounded-xl border border-white/60 bg-white/55 pl-10 pr-4 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
                   placeholder="Cari wilayah..."
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setCurrentPage(1);
+                  }}
                 />
               </label>
             </div>
@@ -329,11 +349,11 @@ export default function AdminRegionsPage() {
                   ) : filteredRegions.length === 0 ? (
                     <tr>
                       <td className="px-4 py-10 text-center text-slate-500" colSpan={7}>
-                        Belum ada wilayah yang cocok.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredRegions.map((region) => (
+                      <EmptyState title="Belum ada wilayah" description="Tidak ada wilayah yang cocok dengan pencarian saat ini." />
+                    </td>
+                  </tr>
+                ) : (
+                    paginatedRegions.map((region) => (
                       <tr className="border-t border-white/60" key={region.id}>
                         <td className="px-4 py-4 font-bold text-slate-800">{region.code}</td>
                         <td className="px-4 py-4 font-semibold text-slate-700">{region.rt}</td>
@@ -358,7 +378,7 @@ export default function AdminRegionsPage() {
                             <button
                               className="flex size-9 items-center justify-center rounded-xl bg-white/55 text-red-600 ring-1 ring-white/70"
                               type="button"
-                              onClick={() => deleteRegion(region)}
+                              onClick={() => setDeleteTarget(region)}
                               aria-label={`Hapus ${region.code}`}
                             >
                               <Trash2 size={16} />
@@ -369,10 +389,21 @@ export default function AdminRegionsPage() {
                     ))
                   )}
                 </tbody>
-              </table>
-            </div>
+            </table>
+          </div>
+            <Pagination currentPage={currentPage} totalItems={filteredRegions.length} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={(value) => { setItemsPerPage(value); setCurrentPage(1); }} />
           </GlassCard>
         </div>
+        <ConfirmDialog
+          open={Boolean(deleteTarget)}
+          title="Hapus wilayah?"
+          description={`Wilayah ${deleteTarget?.code ?? ""} akan dihapus dari master data.`}
+          confirmLabel="Hapus"
+          variant="danger"
+          loading={saving}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => deleteTarget ? deleteRegion(deleteTarget) : undefined}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   );

@@ -6,10 +6,14 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminSidebarItems } from "@/components/layout/adminSidebarItems";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassInput } from "@/components/ui/GlassInput";
+import { Pagination } from "@/components/ui/Pagination";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useToast } from "@/components/ui/ToastProvider";
 import { api } from "@/lib/api";
 
 type Category = {
@@ -54,10 +58,14 @@ export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState<CategoryForm>(initialForm);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { showToast } = useToast();
 
   const filteredCategories = useMemo(() => {
     const keyword = search.toLowerCase();
@@ -69,6 +77,11 @@ export default function AdminCategoriesPage() {
         .includes(keyword),
     );
   }, [categories, search]);
+
+  const paginatedCategories = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredCategories.slice(start, start + itemsPerPage);
+  }, [currentPage, filteredCategories, itemsPerPage]);
 
   async function fetchCategories() {
     setLoading(true);
@@ -125,34 +138,38 @@ export default function AdminCategoriesPage() {
     try {
       if (editingId) {
         await api.put(`/aspiration-categories/${editingId}`, form);
-        alert("Kategori berhasil diperbarui.");
+        showToast({ type: "success", title: "Kategori berhasil diperbarui." });
       } else {
         await api.post("/aspiration-categories", form);
-        alert("Kategori berhasil ditambahkan.");
+        showToast({ type: "success", title: "Kategori berhasil ditambahkan." });
       }
 
       resetForm();
       await fetchCategories();
     } catch (submitError) {
-      setError(getErrorMessage(submitError));
+      const message = getErrorMessage(submitError);
+      setError(message);
+      showToast({ type: "error", title: "Kategori gagal disimpan.", description: message });
     } finally {
       setSaving(false);
     }
   }
 
   async function deleteCategory(category: Category) {
-    if (!window.confirm(`Hapus kategori ${category.name}?`)) {
-      return;
-    }
-
     setError("");
+    setSaving(true);
 
     try {
       await api.delete(`/aspiration-categories/${category.id}`);
-      alert("Kategori berhasil dihapus.");
+      showToast({ type: "success", title: "Kategori berhasil dihapus." });
+      setDeleteTarget(null);
       await fetchCategories();
     } catch (deleteError) {
-      setError(getErrorMessage(deleteError));
+      const message = getErrorMessage(deleteError);
+      setError(message);
+      showToast({ type: "error", title: "Kategori gagal dihapus.", description: message });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -257,7 +274,10 @@ export default function AdminCategoriesPage() {
                   className="h-11 w-full rounded-xl border border-white/60 bg-white/55 pl-10 pr-4 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
                   placeholder="Cari kategori..."
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setCurrentPage(1);
+                  }}
                 />
               </label>
             </div>
@@ -284,11 +304,11 @@ export default function AdminCategoriesPage() {
                   ) : filteredCategories.length === 0 ? (
                     <tr>
                       <td className="px-4 py-10 text-center text-slate-500" colSpan={5}>
-                        Belum ada kategori yang cocok.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredCategories.map((category) => (
+                      <EmptyState title="Belum ada kategori" description="Tidak ada kategori yang cocok dengan pencarian saat ini." />
+                    </td>
+                  </tr>
+                ) : (
+                    paginatedCategories.map((category) => (
                       <tr className="border-t border-white/60" key={category.id}>
                         <td className="px-4 py-4 font-bold text-slate-800">{category.code}</td>
                         <td className="px-4 py-4 font-semibold text-slate-700">{category.name}</td>
@@ -313,7 +333,7 @@ export default function AdminCategoriesPage() {
                             <button
                               className="flex size-9 items-center justify-center rounded-xl bg-white/55 text-red-600 ring-1 ring-white/70"
                               type="button"
-                              onClick={() => deleteCategory(category)}
+                              onClick={() => setDeleteTarget(category)}
                               aria-label={`Hapus ${category.name}`}
                             >
                               <Trash2 size={16} />
@@ -324,10 +344,21 @@ export default function AdminCategoriesPage() {
                     ))
                   )}
                 </tbody>
-              </table>
-            </div>
+            </table>
+          </div>
+            <Pagination currentPage={currentPage} totalItems={filteredCategories.length} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={(value) => { setItemsPerPage(value); setCurrentPage(1); }} />
           </GlassCard>
         </div>
+        <ConfirmDialog
+          open={Boolean(deleteTarget)}
+          title="Hapus kategori?"
+          description={`Kategori ${deleteTarget?.name ?? ""} akan dihapus dari master data.`}
+          confirmLabel="Hapus"
+          variant="danger"
+          loading={saving}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => deleteTarget ? deleteCategory(deleteTarget) : undefined}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   );

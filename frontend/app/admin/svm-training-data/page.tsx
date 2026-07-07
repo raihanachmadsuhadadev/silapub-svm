@@ -6,12 +6,16 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminSidebarItems } from "@/components/layout/adminSidebarItems";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassInput } from "@/components/ui/GlassInput";
+import { Pagination } from "@/components/ui/Pagination";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useToast } from "@/components/ui/ToastProvider";
 import { api } from "@/lib/api";
-import { priorityTone, type ApiResponse } from "@/lib/aspirations";
+import { priorityLabel, priorityTone, type ApiResponse } from "@/lib/aspirations";
 
 type Label = "tinggi" | "sedang" | "rendah";
 type TrainingData = {
@@ -36,11 +40,15 @@ export default function SvmTrainingDataPage() {
   const [items, setItems] = useState<TrainingData[]>([]);
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<TrainingData | null>(null);
   const [search, setSearch] = useState("");
   const [label, setLabel] = useState<"all" | Label>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { showToast } = useToast();
 
   async function fetchItems(active = true) {
     try {
@@ -77,6 +85,11 @@ export default function SvmTrainingDataPage() {
     });
   }, [items, label, search]);
 
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(start, start + itemsPerPage);
+  }, [currentPage, filtered, itemsPerPage]);
+
   const summary = {
     total: items.length,
     tinggi: items.filter((item) => item.label === "tinggi").length,
@@ -106,24 +119,37 @@ export default function SvmTrainingDataPage() {
     try {
       if (editingId) {
         await api.put(`/admin/svm-training-data/${editingId}`, form);
-        alert("Data latih berhasil diperbarui.");
+        showToast({ type: "success", title: "Data latih berhasil diperbarui." });
       } else {
         await api.post("/admin/svm-training-data", form);
-        alert("Data latih berhasil ditambahkan.");
+        showToast({ type: "success", title: "Data latih berhasil ditambahkan." });
       }
       resetForm();
       await fetchItems();
     } catch (submitError) {
-      setError(errorMessage(submitError));
+      const message = errorMessage(submitError);
+      setError(message);
+      showToast({ type: "error", title: "Data latih gagal disimpan.", description: message });
     } finally {
       setSaving(false);
     }
   }
 
   async function remove(item: TrainingData) {
-    if (!window.confirm("Hapus data latih ini?")) return;
-    await api.delete(`/admin/svm-training-data/${item.id}`);
-    await fetchItems();
+    setSaving(true);
+    setError("");
+    try {
+      await api.delete(`/admin/svm-training-data/${item.id}`);
+      showToast({ type: "success", title: "Data latih berhasil dihapus." });
+      setDeleteTarget(null);
+      await fetchItems();
+    } catch (removeError) {
+      const message = errorMessage(removeError);
+      setError(message);
+      showToast({ type: "error", title: "Data latih gagal dihapus.", description: message });
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -185,8 +211,8 @@ export default function SvmTrainingDataPage() {
                 <h2 className="mt-1 text-2xl font-bold text-slate-900">{filtered.length} data ditampilkan</h2>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <label className="relative sm:w-72"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} /><input className="h-11 w-full rounded-xl border border-white/60 bg-white/55 pl-10 pr-4 text-sm outline-none" placeholder="Cari data latih..." value={search} onChange={(e) => setSearch(e.target.value)} /></label>
-                <select className="h-11 rounded-xl border border-white/60 bg-white/55 px-4 text-sm" value={label} onChange={(e) => setLabel(e.target.value as "all" | Label)}>
+                <label className="relative sm:w-72"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} /><input className="h-11 w-full rounded-xl border border-white/60 bg-white/55 pl-10 pr-4 text-sm outline-none" placeholder="Cari data latih..." value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} /></label>
+                <select className="h-11 rounded-xl border border-white/60 bg-white/55 px-4 text-sm" value={label} onChange={(e) => { setLabel(e.target.value as "all" | Label); setCurrentPage(1); }}>
                   <option value="all">Semua</option><option value="tinggi">Tinggi</option><option value="sedang">Sedang</option><option value="rendah">Rendah</option>
                 </select>
               </div>
@@ -195,20 +221,31 @@ export default function SvmTrainingDataPage() {
               <table className="w-full min-w-[820px] bg-white/35 text-left text-sm">
                 <thead className="bg-white/55 text-xs uppercase text-slate-500"><tr><th className="px-4 py-3">Judul</th><th className="px-4 py-3">Teks</th><th className="px-4 py-3">Label</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Aksi</th></tr></thead>
                 <tbody>
-                  {loading ? <tr><td className="px-4 py-10 text-center text-slate-500" colSpan={5}><Loader2 className="mx-auto mb-2 animate-spin text-blue-700" />Memuat data...</td></tr> : filtered.length === 0 ? <tr><td className="px-4 py-10 text-center text-slate-500" colSpan={5}>Belum ada data latih.</td></tr> : filtered.map((item) => (
+                  {loading ? <tr><td className="px-4 py-10 text-center text-slate-500" colSpan={5}><Loader2 className="mx-auto mb-2 animate-spin text-blue-700" />Memuat data...</td></tr> : filtered.length === 0 ? <tr><td className="px-4 py-10 text-center text-slate-500" colSpan={5}><EmptyState title="Belum ada data latih" description="Tambahkan teks latih agar rekomendasi prioritas SVM bisa diproses." /></td></tr> : paginated.map((item) => (
                     <tr className="border-t border-white/60" key={item.id}>
                       <td className="px-4 py-4 font-semibold text-slate-700">{item.title || "-"}</td>
                       <td className="px-4 py-4 text-slate-500">{item.text}</td>
-                      <td className="px-4 py-4"><StatusBadge tone={priorityTone(item.label)}>{item.label}</StatusBadge></td>
+                      <td className="px-4 py-4"><StatusBadge tone={priorityTone(item.label)}>{priorityLabel(item.label)}</StatusBadge></td>
                       <td className="px-4 py-4"><StatusBadge tone={item.is_active ? "green" : "slate"}>{item.is_active ? "Aktif" : "Nonaktif"}</StatusBadge></td>
-                      <td className="px-4 py-4"><div className="flex justify-end gap-2"><button className="flex size-9 items-center justify-center rounded-xl bg-white/55 text-blue-700" type="button" onClick={() => edit(item)}><Edit3 size={16} /></button><button className="flex size-9 items-center justify-center rounded-xl bg-white/55 text-red-600" type="button" onClick={() => remove(item)}><Trash2 size={16} /></button></div></td>
+                      <td className="px-4 py-4"><div className="flex justify-end gap-2"><button className="flex size-9 items-center justify-center rounded-xl bg-white/55 text-blue-700" type="button" onClick={() => edit(item)}><Edit3 size={16} /></button><button className="flex size-9 items-center justify-center rounded-xl bg-white/55 text-red-600" type="button" onClick={() => setDeleteTarget(item)}><Trash2 size={16} /></button></div></td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </table>
+          </div>
+            <Pagination currentPage={currentPage} totalItems={filtered.length} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={(value) => { setItemsPerPage(value); setCurrentPage(1); }} />
           </GlassCard>
         </div>
+        <ConfirmDialog
+          open={Boolean(deleteTarget)}
+          title="Hapus data latih?"
+          description="Data latih ini akan dihapus dan tidak lagi digunakan sebagai referensi SVM."
+          confirmLabel="Hapus"
+          variant="danger"
+          loading={saving}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => deleteTarget ? remove(deleteTarget) : undefined}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   );

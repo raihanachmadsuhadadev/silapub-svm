@@ -4,10 +4,10 @@ import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Building2, Users } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassInput } from "@/components/ui/GlassInput";
+import { useToast } from "@/components/ui/ToastProvider";
 import { useAuth, type UserRole } from "@/context/AuthContext";
 
 function dashboardPath(role: UserRole) {
@@ -29,6 +29,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { showToast } = useToast();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,9 +44,12 @@ export default function LoginPage() {
         password: String(formData.get("password") ?? ""),
       });
 
+      showToast({ type: "success", title: "Login berhasil." });
       router.replace(dashboardPath(user.role));
     } catch (submitError) {
-      setError(getErrorMessage(submitError));
+      const message = getErrorMessage(submitError);
+      setError(message);
+      showToast({ type: "error", title: "Login gagal.", description: message });
     } finally {
       setLoading(false);
     }
@@ -86,23 +90,6 @@ export default function LoginPage() {
           </p>
         ) : null}
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            className="flex items-center gap-3 rounded-2xl bg-white/45 p-4 text-left text-sm font-semibold text-slate-700 ring-1 ring-white/70"
-          >
-            <Users size={19} className="text-blue-700" />
-            Masuk sebagai Warga
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-3 rounded-2xl bg-white/45 p-4 text-left text-sm font-semibold text-slate-700 ring-1 ring-white/70"
-          >
-            <Building2 size={19} className="text-teal-700" />
-            Masuk sebagai Admin
-          </button>
-        </div>
-
         <GlassButton type="submit" className="mt-6 w-full" disabled={loading}>
           {loading ? "Memproses..." : "Masuk"}
         </GlassButton>
@@ -112,9 +99,6 @@ export default function LoginPage() {
           <Link href="/register" className="font-bold text-blue-700">
             Daftar Warga
           </Link>
-        </p>
-        <p className="mt-4 rounded-2xl bg-white/38 p-3 text-xs leading-5 text-slate-500 ring-1 ring-white/60">
-          Demo: admin@silapub.test / password atau warga@silapub.test / password
         </p>
       </form>
     </AuthLayout>

@@ -6,8 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminSidebarItems } from "@/components/layout/adminSidebarItems";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { Pagination } from "@/components/ui/Pagination";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { api } from "@/lib/api";
 import {
@@ -90,6 +92,8 @@ export default function AdminReportsPage() {
   const [report, setReport] = useState<ReportData>(emptyReport);
   const [categories, setCategories] = useState<MasterOption[]>([]);
   const [regions, setRegions] = useState<MasterOption[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [printedAt, setPrintedAt] = useState("");
@@ -162,6 +166,10 @@ export default function AdminReportsPage() {
     () => Object.values(appliedFilters).filter(Boolean).length,
     [appliedFilters],
   );
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return report.items.slice(start, start + itemsPerPage);
+  }, [currentPage, itemsPerPage, report.items]);
   const filterSummary = useMemo(() => {
     const category = categories.find((item) => String(item.id) === appliedFilters.category_id);
     const region = regions.find((item) => String(item.id) === appliedFilters.region_id);
@@ -185,11 +193,13 @@ export default function AdminReportsPage() {
   }
 
   function applyFilters() {
+    setCurrentPage(1);
     setAppliedFilters(filters);
   }
 
   function resetFilters() {
     setFilters(emptyFilters);
+    setCurrentPage(1);
     setAppliedFilters(emptyFilters);
   }
 
@@ -408,10 +418,13 @@ export default function AdminReportsPage() {
                 ) : report.items.length === 0 ? (
                   <tr>
                     <td className="px-4 py-10 text-center text-slate-500" colSpan={9}>
-                      Tidak ada data aspirasi yang sesuai filter.
+                      <EmptyState
+                        title="Tidak ada data laporan"
+                        description="Tidak ada data aspirasi yang sesuai filter yang dipilih."
+                      />
                     </td>
                   </tr>
-                ) : report.items.map((item) => (
+                ) : paginatedItems.map((item) => (
                   <tr className="border-t border-white/60" key={item.id}>
                     <td className="px-4 py-4 font-bold text-slate-800">{item.code}</td>
                     <td className="px-4 py-4 font-semibold text-slate-700">{item.title}</td>
@@ -440,6 +453,16 @@ export default function AdminReportsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalItems={report.items.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(value) => {
+              setItemsPerPage(value);
+              setCurrentPage(1);
+            }}
+          />
         </GlassCard>
       </DashboardLayout>
     </ProtectedRoute>

@@ -7,6 +7,7 @@ import { useState, type FormEvent } from "react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassInput } from "@/components/ui/GlassInput";
+import { useToast } from "@/components/ui/ToastProvider";
 import { useAuth, type RegisterPayload } from "@/context/AuthContext";
 
 function getErrorMessage(error: unknown) {
@@ -24,6 +25,7 @@ export default function RegisterPage() {
   const { register } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { showToast } = useToast();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,9 +47,12 @@ export default function RegisterPage() {
 
     try {
       await register(payload);
+      showToast({ type: "success", title: "Registrasi berhasil." });
       router.replace("/warga/dashboard");
     } catch (submitError) {
-      setError(getErrorMessage(submitError));
+      const message = getErrorMessage(submitError);
+      setError(message);
+      showToast({ type: "error", title: "Registrasi gagal.", description: message });
     } finally {
       setLoading(false);
     }

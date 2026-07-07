@@ -8,9 +8,11 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminSidebarItems } from "@/components/layout/adminSidebarItems";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useToast } from "@/components/ui/ToastProvider";
 import { api } from "@/lib/api";
 import {
   formatDate,
@@ -46,7 +48,9 @@ export default function AdminAspirationDetailPage() {
   const [responseText, setResponseText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [predicting, setPredicting] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"admin-action" | "predict" | null>(null);
   const [actionError, setActionError] = useState("");
+  const { showToast } = useToast();
 
   const loadDetail = useCallback(async (active = true) => {
     try {
@@ -80,9 +84,7 @@ export default function AdminAspirationDetailPage() {
     };
   }, [loadDetail]);
 
-  async function handleActionSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  async function submitAdminAction() {
     if (!aspiration || !actionMode) {
       return;
     }
@@ -102,15 +104,29 @@ export default function AdminAspirationDetailPage() {
         });
       }
 
-      alert("Status aspirasi berhasil diperbarui.");
+      showToast({ type: "success", title: "Status aspirasi berhasil diperbarui." });
       setActionMode(null);
       setNote("");
+      setConfirmAction(null);
       await loadDetail();
     } catch (submitError) {
-      setActionError(getErrorMessage(submitError));
+      const message = getErrorMessage(submitError);
+      setActionError(message);
+      showToast({ type: "error", title: "Aksi admin gagal.", description: message });
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleActionSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (actionMode === "reject" || actionMode === "completed") {
+      setConfirmAction("admin-action");
+      return;
+    }
+
+    submitAdminAction();
   }
 
   async function handleResponseSubmit(event: FormEvent<HTMLFormElement>) {
@@ -127,11 +143,13 @@ export default function AdminAspirationDetailPage() {
       await api.post(`/admin/aspirations/${aspiration.id}/responses`, {
         response_text: responseText,
       });
-      alert("Tanggapan berhasil dikirim.");
+      showToast({ type: "success", title: "Tanggapan berhasil dikirim." });
       setResponseText("");
       await loadDetail();
     } catch (submitError) {
-      setActionError(getErrorMessage(submitError));
+      const message = getErrorMessage(submitError);
+      setActionError(message);
+      showToast({ type: "error", title: "Tanggapan gagal dikirim.", description: message });
     } finally {
       setSubmitting(false);
     }
@@ -147,10 +165,13 @@ export default function AdminAspirationDetailPage() {
 
     try {
       await api.post(`/admin/aspirations/${aspiration.id}/predict-priority`);
-      alert("Rekomendasi prioritas berhasil dibuat.");
+      showToast({ type: "success", title: "Rekomendasi prioritas berhasil dibuat." });
+      setConfirmAction(null);
       await loadDetail();
     } catch (predictError) {
-      setActionError(getErrorMessage(predictError));
+      const message = getErrorMessage(predictError);
+      setActionError(message);
+      showToast({ type: "error", title: "Rekomendasi gagal dibuat.", description: message });
     } finally {
       setPredicting(false);
     }
@@ -239,7 +260,7 @@ export default function AdminAspirationDetailPage() {
                     {actionError}
                   </p>
                 ) : null}
-                <GlassButton className="mt-4 w-full" onClick={handlePredictPriority} disabled={predicting}>
+                <GlassButton className="mt-4 w-full" onClick={() => aspiration.priority_recommendation ? setConfirmAction("predict") : handlePredictPriority()} disabled={predicting}>
                   {predicting ? <Loader2 className="animate-spin" size={18} /> : <RefreshCwIcon />}
                   {aspiration.priority_recommendation ? "Proses Ulang Rekomendasi" : "Proses Rekomendasi SVM"}
                 </GlassButton>
@@ -359,6 +380,25 @@ export default function AdminAspirationDetailPage() {
             </div>
           </div>
         )}
+        <ConfirmDialog
+          open={confirmAction === "admin-action"}
+          title={actionMode === "reject" ? "Tolak aspirasi?" : "Selesaikan aspirasi?"}
+          description={actionMode === "reject" ? "Aspirasi akan masuk status Ditolak dan warga dapat melihat catatan penolakan." : "Aspirasi akan masuk status Selesai dan menjadi status final."}
+          confirmLabel={actionMode === "reject" ? "Tolak Aspirasi" : "Selesaikan"}
+          variant={actionMode === "reject" ? "danger" : "primary"}
+          loading={submitting}
+          onCancel={() => setConfirmAction(null)}
+          onConfirm={submitAdminAction}
+        />
+        <ConfirmDialog
+          open={confirmAction === "predict"}
+          title="Proses ulang rekomendasi?"
+          description="Hasil rekomendasi prioritas yang tersimpan akan diperbarui."
+          confirmLabel="Proses Ulang"
+          loading={predicting}
+          onCancel={() => setConfirmAction(null)}
+          onConfirm={handlePredictPriority}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   );

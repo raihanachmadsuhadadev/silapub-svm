@@ -10,6 +10,7 @@ import { wargaSidebarItems } from "@/components/layout/wargaSidebarItems";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassInput } from "@/components/ui/GlassInput";
+import { useToast } from "@/components/ui/ToastProvider";
 import { api } from "@/lib/api";
 import type { ApiResponse, MasterOption } from "@/lib/aspirations";
 
@@ -70,6 +71,7 @@ export default function CreateAspirationPage() {
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { showToast } = useToast();
 
   useEffect(() => {
     let active = true;
@@ -89,7 +91,9 @@ export default function CreateAspirationPage() {
         }
       } catch (loadError) {
         if (active) {
-          setError(getErrorMessage(loadError));
+          const message = getErrorMessage(loadError);
+          setError(message);
+          showToast({ type: "error", title: "Data form gagal dimuat.", description: message });
         }
       } finally {
         if (active) {
@@ -103,7 +107,7 @@ export default function CreateAspirationPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [showToast]);
 
   function handleFiles(event: ChangeEvent<HTMLInputElement>) {
     setFiles(Array.from(event.target.files ?? []).slice(0, 3));
@@ -150,10 +154,12 @@ export default function CreateAspirationPage() {
           Accept: "application/json",
         },
       });
-      alert("Aspirasi berhasil diajukan.");
+      showToast({ type: "success", title: "Aspirasi berhasil diajukan." });
       router.replace("/warga/aspirations");
     } catch (submitError) {
-      setError(getErrorMessage(submitError));
+      const message = getErrorMessage(submitError);
+      setError(message);
+      showToast({ type: "error", title: "Aspirasi gagal dikirim.", description: message });
     } finally {
       setSubmitting(false);
     }

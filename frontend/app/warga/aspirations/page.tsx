@@ -8,11 +8,14 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { wargaSidebarItems } from "@/components/layout/wargaSidebarItems";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Pagination } from "@/components/ui/Pagination";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { api } from "@/lib/api";
 import {
   formatDate,
   priorityLabel,
+  priorityTone,
   statusLabels,
   statusTones,
   type ApiResponse,
@@ -33,6 +36,8 @@ export default function WargaAspirationsPage() {
   const [aspirations, setAspirations] = useState<Aspiration[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | AspirationStatus>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -78,6 +83,11 @@ export default function WargaAspirationsPage() {
       return matchesStatus && matchesKeyword;
     });
   }, [aspirations, search, status]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(start, start + itemsPerPage);
+  }, [currentPage, filtered, itemsPerPage]);
 
   const summary = {
     total: aspirations.length,
@@ -126,13 +136,19 @@ export default function WargaAspirationsPage() {
                   className="h-11 w-full rounded-xl border border-white/60 bg-white/55 pl-10 pr-4 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
                   placeholder="Cari kode atau judul..."
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setCurrentPage(1);
+                  }}
                 />
               </label>
               <select
                 className="h-11 rounded-xl border border-white/60 bg-white/55 px-4 text-sm text-slate-700 outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
                 value={status}
-                onChange={(event) => setStatus(event.target.value as "all" | AspirationStatus)}
+                onChange={(event) => {
+                  setStatus(event.target.value as "all" | AspirationStatus);
+                  setCurrentPage(1);
+                }}
               >
                 {statusOptions.map((option) => (
                   <option value={option} key={option}>
@@ -178,11 +194,16 @@ export default function WargaAspirationsPage() {
                 ) : filtered.length === 0 ? (
                   <tr>
                     <td className="px-4 py-10 text-center text-slate-500" colSpan={8}>
-                      Belum ada aspirasi yang cocok.
+                      <EmptyState
+                        title="Belum ada aspirasi"
+                        description="Mulai ajukan aspirasi pertama Anda atau ubah filter pencarian."
+                        actionLabel="Ajukan Aspirasi"
+                        actionHref="/warga/aspirations/create"
+                      />
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((aspiration) => (
+                  paginated.map((aspiration) => (
                     <tr className="border-t border-white/60" key={aspiration.id}>
                       <td className="px-4 py-4 font-bold text-slate-800">{aspiration.code}</td>
                       <td className="px-4 py-4 font-semibold text-slate-700">{aspiration.title}</td>
@@ -195,8 +216,10 @@ export default function WargaAspirationsPage() {
                           {statusLabels[aspiration.status]}
                         </StatusBadge>
                       </td>
-                      <td className="px-4 py-4 text-slate-500">
-                        {priorityLabel(aspiration.priority_recommendation)}
+                      <td className="px-4 py-4">
+                        <StatusBadge tone={priorityTone(aspiration.priority_recommendation)}>
+                          {priorityLabel(aspiration.priority_recommendation)}
+                        </StatusBadge>
                       </td>
                       <td className="px-4 py-4 text-slate-500">{formatDate(aspiration.submitted_at)}</td>
                       <td className="px-4 py-4">
@@ -214,6 +237,16 @@ export default function WargaAspirationsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filtered.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(value) => {
+              setItemsPerPage(value);
+              setCurrentPage(1);
+            }}
+          />
         </GlassCard>
       </DashboardLayout>
     </ProtectedRoute>
